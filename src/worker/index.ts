@@ -66,6 +66,23 @@ export function parsePreferences(body: Record<string, unknown>): Preferences {
 
 app.get("/api/health", (c) => c.json({ ok: true }));
 
+// Instagram's CDN forbids embedding its images on other sites (CORP: same-origin), so the
+// profile photo is fetched server-side and served from Duet's own origin, cached for a day.
+app.get("/api/avatar/:id", async (c) => {
+  const row = await c.env.DB.prepare("SELECT avatar_url FROM participants WHERE id = ?1").bind(c.req.param("id")).first<{ avatar_url: string | null }>();
+  const url = row?.avatar_url;
+  if (!url || !url.startsWith("https://")) return c.notFound();
+  const cache = caches.default;
+  const key = new Request(`https://avatar.duet/${c.req.param("id")}/${encodeURIComponent(url).slice(-40)}`);
+  const hit = await cache.match(key);
+  if (hit) return hit;
+  const res = await fetch(url, { headers: { "user-agent": "Mozilla/5.0" } });
+  if (!res.ok || !(res.headers.get("content-type") ?? "").startsWith("image/")) return c.notFound();
+  const out = new Response(res.body, { headers: { "content-type": res.headers.get("content-type")!, "cache-control": "public, max-age=86400" } });
+  c.executionCtx.waitUntil(cache.put(key, out.clone()));
+  return out;
+});
+
 app.get("/api/config", async (c) => {
   let model = "unconfigured";
   try {

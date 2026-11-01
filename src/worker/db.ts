@@ -33,7 +33,7 @@ export function toSummary(r: Row): ParticipantSummary {
     headline: String(r.headline ?? ""),
     approved_at: (r.approved_at as string | null) ?? null,
     approved_by: (r.approved_by as string | null) ?? null,
-    avatar_url: (r.avatar_url as string | null) ?? null,
+    avatar_url: typeof r.avatar_url === "string" && r.avatar_url.startsWith("http") ? `/api/avatar/${r.id}` : ((r.avatar_url as string | null) ?? null),
   };
 }
 
