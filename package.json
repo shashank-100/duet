@@ -1,0 +1,28 @@
+{
+  "name": "duet",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build && wrangler dev",
+    "build": "vite build",
+    "deploy": "vite build && wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p src/client",
+    "test": "vitest run",
+    "cf-typegen": "wrangler types src/worker/worker-configuration.d.ts"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3",
+    "hono": "^4.13.13",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "typescript": "5.9",
+    "vite": "^7.3.7",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.149.0"
+  }
+}

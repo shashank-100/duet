@@ -1,0 +1,11 @@
+node_modules/
+.vercel/
+dist/
+.wrangler/
+.dev.vars
+*.log
+# Candidate lists scraped outside this app. Never published: those people have not consented.
+research/
+video/out/
+.vercel
+.env*

@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "duet-dating",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "duet-dating", "database_id": "920208e0-6625-492b-b10a-decfbd8c613e", "migrations_dir": "migrations" }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "DATE_ROOM", "class_name": "DateRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DateRoom"] }],
+  "workflows": [
+    { "name": "duet-ingest", "binding": "INGEST", "class_name": "IngestWorkflow" }
+  ],
+  "ai": { "binding": "AI", "remote": true },
+  "triggers": { "crons": ["* * * * *"] },
+  "vars": {
+    "LLM_PROVIDER": "auto",
+    "WORKERS_AI_MODEL": "@cf/deepseek-ai/deepseek-v4-pro-0813",
+    "ANTHROPIC_MODEL": "claude-sonnet-5-5",
+    "OPENAI_MODEL": "gpt-5-mini",
+    "MAX_CONCURRENT_DATES": "6",
+    "LINKEDIN_ACTOR": "harvestapi~linkedin-profile-scraper",
+    "INSTAGRAM_ACTOR": "apify~instagram-profile-scraper",
+    "LINKEDIN_INPUT": "{\"profileScraperMode\":\"Profile details no email ($4 per 1k)\",\"queries\":[\"{{url}}\"]}",
+    "INSTAGRAM_INPUT": "{\"usernames\":[\"{{username}}\"],\"resultsLimit\":12}"
+  },
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}
