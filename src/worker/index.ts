@@ -7,7 +7,7 @@ import { seedDemo } from "./demo/seed";
 import { DATE_PLAN } from "./harness";
 import { storeResult } from "./retrieval/store";
 import { createLLM } from "./llm";
-import { OPERATOR_SOURCE } from "./ingest";
+import { OPERATOR_SOURCE, TRY_SOURCE } from "./ingest";
 import { createPracticeDate, dispatch, roomFor, scheduleDatesFor } from "./matchmaking";
 import { rankingFor } from "./rankings";
 import { exportResult, type UploadedFile } from "./retrieval/exports";
@@ -214,6 +214,51 @@ app.post("/api/participants", async (c) => {
   sessions.push({ id, token });
   c.header("set-cookie", sessionCookie(sessions, new URL(c.req.url).protocol === "https:"));
   return c.json({ id, manage_path: `/manage/${id}#${token}` }, 201);
+});
+
+// Try it: a judge enters two people (LinkedIn + public Instagram each); their agents date each other.
+app.post("/api/try", async (c) => {
+  const body = await c.req.json<Record<string, unknown>>().catch(() => null);
+  if (!body || body.permission !== true) return bad(c, "Please confirm the two profiles are public and you're allowed to use them.");
+  const people: { name: string; linkedin: string; instagram: string }[] = [];
+  for (const key of ["a", "b"]) {
+    const p = (body[key] ?? {}) as Record<string, unknown>;
+    const name = str(p.display_name, 60);
+    if (!name) return bad(c, `Person ${key.toUpperCase()}: please enter a name.`);
+    try {
+      people.push({ name, linkedin: normalizeLinkedIn(String(p.linkedin_url ?? "")), instagram: normalizeInstagram(String(p.instagram_url ?? "")) });
+    } catch (err) {
+      return bad(c, `Person ${key.toUpperCase()}: ${err instanceof LinkError ? err.message : "invalid link."}`);
+    }
+  }
+  if (people[0].linkedin === people[1].linkedin || people[0].instagram === people[1].instagram) return bad(c, "Enter two different people.");
+  const ids = people.map(() => `p_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`);
+  const existing: (string | null)[] = [];
+  for (const p of people) {
+    const row = await c.env.DB.prepare("SELECT id FROM participants WHERE kind = 'real' AND (linkedin_url = ?1 OR instagram_url = ?2)").bind(p.linkedin, p.instagram).first<{ id: string }>();
+    existing.push(row?.id ?? null);
+  }
+  const finalIds = ids.map((id, i) => existing[i] ?? id);
+  for (let i = 0; i < 2; i++) {
+    if (existing[i]) continue;
+    const p = people[i];
+    await c.env.DB.prepare(
+      `INSERT INTO participants (id, kind, display_name, linkedin_url, instagram_url, status, status_detail, consent_at, consent_version, token_hash, ip_hash, pair_with)
+       VALUES (?1, 'real', ?2, ?3, ?4, 'submitted', 'Queued for retrieval.', ?5, ?6, NULL, 'try', ?7)`,
+    )
+      .bind(finalIds[i], p.name, p.linkedin, p.instagram, now(), TRY_SOURCE, finalIds[1 - i])
+      .run();
+    await savePreferences(c.env.DB, finalIds[i], parsePreferences({ open_to: ["woman", "man", "nonbinary"], age_min: 18, age_max: 99 }));
+    await logEvent(c.env.DB, finalIds[i], "added", "ok", `Entered on the home page as a pair, with the submitter confirming permission: ${p.linkedin} and ${p.instagram}.`);
+    await c.env.INGEST.create({ id: `ingest-${finalIds[i]}-${Date.now()}`, params: { participantId: finalIds[i], mode: "full" } });
+  }
+  // Both already known (e.g. two of the 26): date them right away.
+  if (existing[0] && existing[1]) {
+    const already = await c.env.DB.prepare("SELECT id FROM dates WHERE (a_id = ?1 AND b_id = ?2) OR (a_id = ?2 AND b_id = ?1)").bind(finalIds[0], finalIds[1]).first();
+    if (!already) await c.env.DB.prepare("INSERT INTO dates (id, pool, a_id, b_id, status) VALUES (?1, 'real', ?2, ?3, 'queued')").bind(newId("date"), finalIds[0], finalIds[1]).run();
+    c.executionCtx.waitUntil(dispatch(c.env));
+  }
+  return c.json({ a: finalIds[0], b: finalIds[1] }, 201);
 });
 
 // ---------- owner actions ----------

@@ -9,6 +9,8 @@ import { createLLM } from "./llm";
 
 /** consent_version marker for people the operator added from public links (no self-attested consent). */
 export const OPERATOR_SOURCE = "operator-public";
+export const TRY_SOURCE = "judge-try";
+export const TRY_LABEL = "Try it: entered as a pair on the home page";
 export const OPERATOR_LABEL = "Duet operator: added from public LinkedIn + Instagram, not self-submitted";
 import { dispatch, scheduleDatesFor } from "./matchmaking";
 import { retrieveInstagramApify, retrieveLinkedInApify } from "./retrieval/apify";
@@ -39,7 +41,7 @@ async function retrievePlatform(env: Env, participantId: string, platform: "link
 
 export async function runAnalysis(env: Env, participantId: string): Promise<{ status: string; observations: number }> {
   const db = env.DB;
-  const person = await db.prepare("SELECT display_name, kind, consent_version FROM participants WHERE id = ?1").bind(participantId).first<{ display_name: string; kind: string; consent_version: string | null }>();
+  const person = await db.prepare("SELECT display_name, kind, consent_version, pair_with FROM participants WHERE id = ?1").bind(participantId).first<{ display_name: string; kind: string; consent_version: string | null; pair_with: string | null }>();
   if (!person) return { status: "deleted", observations: 0 };
   const items = await getItems(db, participantId);
   const hasLinkedIn = items.some((i) => i.platform === "linkedin" && i.field !== "name");
@@ -89,15 +91,24 @@ export async function runAnalysis(env: Env, participantId: string): Promise<{ st
     `Drafted ${result.observations.length} evidence-backed observations${result.dropped ? ` (${result.dropped} unsupported claims discarded)` : ""}${coverage ? `. ${coverage}.` : "."}`,
   );
   const operatorAdded = person.consent_version === OPERATOR_SOURCE;
-  if (person.kind === "demo" || operatorAdded) {
+  const tryPair = person.consent_version === TRY_SOURCE;
+  if (person.kind === "demo" || operatorAdded || tryPair) {
     // Fictional personas and operator-added public profiles cannot review themselves; the operator
     // approves, and every page says so.
-    const by = person.kind === "demo" ? "demo operator (fictional persona)" : OPERATOR_LABEL;
+    const by = person.kind === "demo" ? "demo operator (fictional persona)" : tryPair ? TRY_LABEL : OPERATOR_LABEL;
     await db
       .prepare("UPDATE participants SET status = 'approved', status_detail = NULL, dating_enabled = 1, approved_at = ?2, approved_by = ?3 WHERE id = ?1")
       .bind(participantId, now(), by)
       .run();
     await logEvent(db, participantId, "approve", "ok", `Approved by the ${by}.`);
+    if (person.pair_with) {
+      // The pair entered together dates each other first, as soon as both profiles are ready.
+      const partner = await db.prepare("SELECT status FROM participants WHERE id = ?1").bind(person.pair_with).first<{ status: string }>();
+      const already = await db.prepare("SELECT id FROM dates WHERE (a_id = ?1 AND b_id = ?2) OR (a_id = ?2 AND b_id = ?1)").bind(participantId, person.pair_with).first();
+      if (partner?.status === "approved" && !already) {
+        await db.prepare("INSERT INTO dates (id, pool, a_id, b_id, status) VALUES (?1, 'real', ?2, ?3, 'queued')").bind(newId("date"), person.pair_with, participantId).run();
+      }
+    }
     await scheduleDatesFor(db, participantId, env.MAX_DATES_PER_PERSON);
     await dispatch(env);
   } else {

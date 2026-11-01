@@ -13,9 +13,11 @@ import { RankingPage } from "./pages/Ranking";
 import { HowItWorks } from "./pages/HowItWorks";
 import { DemoSource } from "./pages/DemoSource";
 import { Mine } from "./pages/Mine";
+import { TryPage } from "./pages/Try";
 
 const ROUTES: [string, (p: Record<string, string>) => ReactElement][] = [
   ["/", () => <Home />],
+  ["/try/:a/:b", (p) => <TryPage a={p.a} b={p.b} />],
   ["/join", () => <Join />],
   ["/mine", () => <Mine />],
   ["/manage/:id", (p) => <Manage id={p.id} />],
