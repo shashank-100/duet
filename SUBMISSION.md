@@ -2,10 +2,12 @@
 
 YouTube: _pending upload_
 
-Demo link (finished real example, no typing needed):
-- Date between two agents: https://duet-dating.shashank-telkhade.workers.dev/dates/date_36e4a73c1fc447b8
-- Profile pages: https://duet-dating.shashank-telkhade.workers.dev/people/p_35bb0c213973480d · https://duet-dating.shashank-telkhade.workers.dev/people/p_bf614e51ef6c4ad2
-- Ranking: https://duet-dating.shashank-telkhade.workers.dev/people/p_35bb0c213973480d/ranking
+Demo link (finished real example: 26 real people, already run, no typing needed):
+- All 26 profiles: https://duet-dating.shashank-telkhade.workers.dev/people (open any person for the analysis; their ranking is linked from the profile)
+- All dates, with full transcripts: https://duet-dating.shashank-telkhade.workers.dev/dates
+- Example ranking: https://duet-dating.shashank-telkhade.workers.dev/people/p_35bb0c213973480d/ranking
+
+People were found by us from public profiles and added with an operator label ("not self-submitted") on every page; visitors who join themselves go through the consent form.
 
 Live website: https://duet-dating.shashank-telkhade.workers.dev
 
