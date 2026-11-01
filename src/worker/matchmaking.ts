@@ -24,7 +24,7 @@ export async function candidates(db: D1Database, kind: "demo" | "real"): Promise
   }));
 }
 
-export async function scheduleDatesFor(db: D1Database, participantId: string): Promise<number> {
+export async function scheduleDatesFor(db: D1Database, participantId: string, maxPerPerson?: string): Promise<number> {
   const me = await db.prepare("SELECT id, kind, status, dating_enabled FROM participants WHERE id = ?1").bind(participantId).first<Row>();
   if (!me) return 0;
   const kind = me.kind as "demo" | "real";
@@ -36,7 +36,20 @@ export async function scheduleDatesFor(db: D1Database, participantId: string): P
     .bind(participantId)
     .all<Row>();
   const existing = new Set(results.map((r) => `${r.a_id}|${r.b_id}`));
-  const pairs = pairsToSchedule(self, all, existing);
+  // Each person gets at most MAX_DATES_PER_PERSON dates, so a pool of n doesn't need n² dates.
+  const cap = Math.max(1, Number(maxPerPerson || 8));
+  const counts = new Map<string, number>();
+  const { results: busy } = await db
+    .prepare("SELECT a_id, b_id FROM dates WHERE pool = ?1 AND status != 'failed'")
+    .bind(kind)
+    .all<Row>();
+  for (const r of busy) for (const id of [String(r.a_id), String(r.b_id)]) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const pairs = pairsToSchedule(self, all, existing).filter(([a, b]) => {
+    if ((counts.get(a) ?? 0) >= cap || (counts.get(b) ?? 0) >= cap) return false;
+    counts.set(a, (counts.get(a) ?? 0) + 1);
+    counts.set(b, (counts.get(b) ?? 0) + 1);
+    return true;
+  });
   if (!pairs.length) return 0;
   // A previously failed date for the same pair is replaced by a fresh one.
   await db.batch(

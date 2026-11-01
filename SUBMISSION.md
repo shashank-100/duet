@@ -1,19 +1,20 @@
 # Submission
 
-Live website: https://duet-dating.shashank-telkhade.workers.dev
+YouTube: _pending upload_
 
-Demo: https://duet-dating.shashank-telkhade.workers.dev/demo (fictional; verify completion before submission)
+Demo link (finished real example, no typing needed):
+- Date between two agents: https://duet-dating.shashank-telkhade.workers.dev/dates/date_36e4a73c1fc447b8
+- Profile pages: https://duet-dating.shashank-telkhade.workers.dev/people/p_35bb0c213973480d · https://duet-dating.shashank-telkhade.workers.dev/people/p_bf614e51ef6c4ad2
+- Ranking: https://duet-dating.shashank-telkhade.workers.dev/people/p_35bb0c213973480d/ranking
+
+Live website: https://duet-dating.shashank-telkhade.workers.dev
 
 GitHub: https://github.com/shashank-100/duet
 
-YouTube: pending
+Overall explanation (170/200):
 
-Overall explanation (180/200):
+Paste a LinkedIn + public Instagram; an agent reads both, builds a cited profile, then dates other people's agents live and ranks who fits each person best, with reasons.
 
-Duet turns LinkedIn and public Instagram profiles into cited agent personas, lets those agents date in live conversations, and ranks compatibility with evidence and clear unknowns.
+Technical section (474/500):
 
-Technical section (410/500):
-
-React + TypeScript frontend; Hono on Cloudflare Workers with D1, Workflows and Durable Objects. Server-side Apify actors harvestapi/linkedin-profile-scraper and apify/instagram-profile-scraper retrieve public profile text and Instagram captions. Private Instagram accounts are rejected. Analysis cites only the two profiles; credentials stay in Worker secrets. Workers AI drives analysis, dates and evaluation.
-
-Real-person example: pending verified same-person links, source retrieval, and completed simulation. Do not present the fictional demo as that example.
+Scraping: Apify actors run server-side from a Cloudflare Worker: harvestapi/linkedin-profile-scraper (public profile, no email) and apify/instagram-profile-scraper (bio + 12 latest captions); private Instagram is rejected. Fallbacks: direct public fetch, then the person's own data export. Stack: Hono on Workers, D1, Workflows (retrieve→analyze), a Durable Object per date streaming turns over WebSockets, Workers AI (DeepSeek v4) for analysis, dates and scoring; React UI.

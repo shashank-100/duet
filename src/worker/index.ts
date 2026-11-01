@@ -197,7 +197,8 @@ app.post("/api/participants", async (c) => {
   const recent = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM participants WHERE ip_hash = ?1 AND created_at > ?2")
     .bind(ipHash, new Date(Date.now() - 86_400_000).toISOString())
     .first<{ n: number }>();
-  if (Number(recent?.n ?? 0) >= 10) return bad(c, "Too many profiles created from this network today. Please try again tomorrow.", 429);
+  const operator = await adminOk(c.req.header("authorization"), c.env.ADMIN_TOKEN);
+  if (!operator && Number(recent?.n ?? 0) >= 10) return bad(c, "Too many profiles created from this network today. Please try again tomorrow.", 429);
   const dupe = await c.env.DB.prepare("SELECT id FROM participants WHERE kind = 'real' AND (linkedin_url = ?1 OR instagram_url = ?2)").bind(linkedin, instagram).first<{ id: string }>();
   if (dupe) return bad(c, "A profile with one of these links already exists. If it's yours, open it with your manage link, or delete it there first.", 409);
 
@@ -321,7 +322,7 @@ app.post("/api/participants/:id/approve", async (c) => {
   if (!Number(obs?.n)) return bad(c, "Your profile has no observations. Add at least one, or upload an export and re-analyze.", 409);
   await c.env.DB.prepare("UPDATE participants SET status = 'approved', status_detail = NULL, dating_enabled = 1, approved_at = ?2, approved_by = 'participant' WHERE id = ?1").bind(id, now()).run();
   await logEvent(c.env.DB, id, "approve", "ok", "You approved your profile. Your agent can now date.");
-  const scheduled = await scheduleDatesFor(c.env.DB, id);
+  const scheduled = await scheduleDatesFor(c.env.DB, id, c.env.MAX_DATES_PER_PERSON);
   c.executionCtx.waitUntil(dispatch(c.env));
   return c.json({ scheduled, profile: await getProfileDetail(c.env.DB, id, true) });
 });

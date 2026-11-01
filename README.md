@@ -19,6 +19,7 @@ Ranking         — per person, weighted criteria incl. fit with *their own* pri
 - **Live site:** https://duet-dating.shashank-telkhade.workers.dev
 - **Fictional demo (execution status shown live):** https://duet-dating.shashank-telkhade.workers.dev/demo
 - **Video:** _set after upload_
+- **Finished real example:** see [SUBMISSION.md](SUBMISSION.md)
 
 ## What it does
 
@@ -109,6 +110,7 @@ curl -X POST -H "authorization: Bearer $ADMIN_TOKEN" https://<your-worker>/api/a
 | `LLM_PROVIDER` | var | `auto` (Anthropic → OpenAI → Workers AI), or force `workers-ai` / `anthropic` / `openai` |
 | `WORKERS_AI_MODEL` / `ANTHROPIC_MODEL` / `OPENAI_MODEL` | var | Model per provider |
 | `MAX_CONCURRENT_DATES` | var | Dates running at once (default 6) |
+| `MAX_DATES_PER_PERSON` | var | Cap on dates per person, so a pool of n needs about 4n dates instead of n² (default 8) |
 | `LINKEDIN_ACTOR`, `INSTAGRAM_ACTOR` | var | Apify actor ids |
 | `LINKEDIN_INPUT`, `INSTAGRAM_INPUT` | var | Actor input JSON templates (`{{url}}`, `{{username}}`) |
 

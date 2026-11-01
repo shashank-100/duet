@@ -92,15 +92,27 @@ function workersAI(ai: Ai, model: string): LLM {
     max_tokens: req.maxTokens,
     temperature: req.temperature ?? 0.7,
     stream,
+    // Reasoning models (DeepSeek v4) otherwise spend the whole token budget thinking and return no text.
+    chat_template_kwargs: { thinking: false },
   });
   const run = async (req: CompletionRequest, stream: boolean): Promise<unknown> => {
-    try {
-      // The AI binding's input type is a union over every model; this call shape is the chat form.
-      return await (ai.run as (m: string, i: unknown) => Promise<unknown>)(model, input(req, stream));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      const retryable = !/not found|invalid|unauthorized|neurons|quota/i.test(message) || /capacity|timeout|3040|overload/i.test(message);
-      throw new LLMError(`Workers AI (${model}) failed: ${message}`, retryable);
+    // Capacity (3040) and internal (8005) errors are usually gone within seconds, so retry here
+    // before failing the whole workflow step or date turn.
+    const delays = [2000, 5000, 12000];
+    for (let attempt = 0; ; attempt++) {
+      try {
+        // The AI binding's input type is a union over every model; this call shape is the chat form.
+        return await (ai.run as (m: string, i: unknown) => Promise<unknown>)(model, input(req, stream));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const transient = /capacity|3040|8005|internal server error|overload|timeout/i.test(message);
+        if (transient && attempt < delays.length) {
+          await new Promise((r) => setTimeout(r, delays[attempt]));
+          continue;
+        }
+        const retryable = transient || !/not found|invalid|unauthorized|neurons|quota/i.test(message);
+        throw new LLMError(`Workers AI (${model}) failed: ${message}`, retryable);
+      }
     }
   };
   const textOf = (out: unknown): string => {

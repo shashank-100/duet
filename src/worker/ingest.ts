@@ -91,7 +91,7 @@ export async function runAnalysis(env: Env, participantId: string): Promise<{ st
       .bind(participantId, now())
       .run();
     await logEvent(db, participantId, "approve", "ok", "Approved by the demo operator (fictional persona).");
-    await scheduleDatesFor(db, participantId);
+    await scheduleDatesFor(db, participantId, env.MAX_DATES_PER_PERSON);
     await dispatch(env);
   } else {
     await setStatus(db, participantId, "draft_ready", "Your draft profile is ready. Review it, edit anything, then approve it so your agent can start dating.");

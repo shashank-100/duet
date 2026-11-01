@@ -37,7 +37,9 @@ Hard rules:
 4. Prefer specific over generic ("trail running in the Marin Headlands" beats "fitness"). The quote must contain the words that justify the label (for a hiking hobby, quote the hike itself, not just a distance).
 5. Be thorough: go through EVERY item and capture each distinct hobby, interest, activity, need and quality it evidences — Instagram captions usually reveal the personal side (food, sports, books, music, travel, rituals, causes). Do not stop at the professional profile.
 6. "unknowns": list 3–6 things a dating agent would want to know that the sources do NOT answer (e.g. "What they enjoy on weekends — sources are all professional", "Whether the hiking posts are recent or occasional").
-7. headline: one line (≤ 90 chars) in neutral third person from the evidence. summary: 2–3 sentences, neutral, only from the evidence, mention when sources are thin.
+7. Write "label", "detail", "headline", "summary" and "unknowns" in English even when the source is in another language; the "quote" stays in the original language, copied exactly.
+8. Keep "professional" to at most 8 observations (the most telling roles, not every listed skill); spend the rest on hobbies, interests, activities, needs and qualities — read every Instagram caption for these.
+9. headline: one line (≤ 90 chars) in neutral third person from the evidence. summary: 2–3 sentences, neutral, only from the evidence, mention when sources are thin.
 
 Return ONLY JSON:
 {"headline": string, "summary": string, "observations": [{"category": one of ${OBSERVATION_CATEGORIES.join("|")}, "label": short noun phrase, "detail": one sentence explaining what the evidence shows, "item_id": string, "quote": string}], "unknowns": [string]}
@@ -117,7 +119,7 @@ Source coverage: ${linkedin} LinkedIn items, ${instagram} Instagram items.${link
 
 SOURCE ITEMS:
 ${renderItems(items)}`;
-  return completeJson(llm, { system: SYSTEM, messages: [{ role: "user", content: user }], maxTokens: 3500, temperature: 0.2 }, (v) =>
+  return completeJson(llm, { system: SYSTEM, messages: [{ role: "user", content: user }], maxTokens: 6000, temperature: 0.2 }, (v) =>
     validateAnalysis(v, items),
   );
 }
