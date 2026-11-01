@@ -16,5 +16,12 @@ export async function storeResult(db: D1Database, participantId: string, r: Retr
         .bind(newId("item"), participantId, docId, r.platform, it.field, it.url, it.text, i),
     ),
   ];
+  if (r.avatar) {
+    stmts.push(
+      r.platform === "instagram"
+        ? db.prepare("UPDATE participants SET avatar_url = ?2 WHERE id = ?1").bind(participantId, r.avatar)
+        : db.prepare("UPDATE participants SET avatar_url = COALESCE(avatar_url, ?2) WHERE id = ?1").bind(participantId, r.avatar),
+    );
+  }
   await db.batch(stmts);
 }

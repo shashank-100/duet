@@ -82,6 +82,7 @@ export interface ParticipantSummary {
   headline: string;
   approved_at: string | null;
   approved_by: string | null;
+  avatar_url: string | null;
 }
 
 export interface ProfileDetail extends ParticipantSummary {

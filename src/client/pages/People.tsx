@@ -16,11 +16,12 @@ export function People() {
         {data?.map((p) => (
           <Link key={p.id} to={`/people/${p.id}`} className="card person-card">
             <div className="row" style={{ alignItems: "flex-start" }}>
-              <Avatar name={p.display_name} />
+              <Avatar name={p.display_name} src={p.avatar_url} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h3>{p.display_name}</h3>
                 <KindBadge kind={p.kind} />
                 <p className="small muted" style={{ margin: "6px 0 0" }}>{p.headline}</p>
+                {p.kind === "real" ? <p className="src" style={{ margin: "8px 0 0" }}>in/{handle(p.linkedin_url)} · @{handle(p.instagram_url)}</p> : null}
               </div>
             </div>
           </Link>
@@ -28,4 +29,8 @@ export function People() {
       </div>
     </div>
   );
+}
+
+function handle(url: string): string {
+  return url.replace(/\/+$/, "").split("/").pop() ?? url;
 }

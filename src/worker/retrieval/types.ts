@@ -15,6 +15,8 @@ export interface RetrievalResult {
   /** Plain-language explanation, including what the participant can do about a failure. */
   detail: string;
   items: RetrievedItem[];
+  /** Profile picture URL from the same public profile, when the scraper returns one. */
+  avatar?: string;
 }
 
 const MAX_ITEM_CHARS = 2500;

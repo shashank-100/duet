@@ -3,9 +3,13 @@ import { api } from "./api";
 import { Link } from "./router";
 import type { ParticipantKind } from "../shared/types";
 
-const PALETTE = ["#e0573f", "#2f6f73", "#6a4fb3", "#b5762a", "#3f6fb5", "#a3466e", "#4d7d3a", "#7a5c48"];
+const PALETTE = ["#b8466a", "#c0703a", "#7b4fa8", "#3f7d86", "#a8456f", "#8a5a2b", "#5a5fb0", "#9b3f52"];
 
-export function Avatar({ name, size }: { name: string; size?: "lg" }) {
+export function Avatar({ name, size, src }: { name: string; size?: "lg"; src?: string | null }) {
+  const [broken, setBroken] = useState(false);
+  if (src && !broken) {
+    return <img className={`avatar photo ${size ?? ""}`} src={src} alt="" referrerPolicy="no-referrer" loading="lazy" onError={() => setBroken(true)} />;
+  }
   let h = 0;
   for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const initials = name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -114,10 +118,10 @@ export function useApi<T>(path: string | null, pollMs?: number | ((data: T | nul
   return { data, error, loading, reload: load, setData };
 }
 
-export function PersonLink({ id, name, kind, children }: { id: string; name: string; kind?: ParticipantKind; children?: ReactNode }) {
+export function PersonLink({ id, name, kind, children, avatar }: { id: string; name: string; kind?: ParticipantKind; children?: ReactNode; avatar?: string | null }) {
   return (
     <Link to={`/people/${id}`} className="person">
-      <Avatar name={name} />
+      <Avatar name={name} src={avatar} />
       <span>
         <strong>{name}</strong>
         {kind ? (

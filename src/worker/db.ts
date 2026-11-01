@@ -18,7 +18,7 @@ export const newId = (prefix: string) => `${prefix}_${crypto.randomUUID().replac
 type Row = Record<string, unknown>;
 
 const PARTICIPANT_COLUMNS = `p.id, p.kind, p.display_name, p.linkedin_url, p.instagram_url, p.status, p.status_detail,
-  p.dating_enabled, p.approved_at, p.approved_by, COALESCE(pr.headline, '') AS headline`;
+  p.dating_enabled, p.approved_at, p.approved_by, p.avatar_url, COALESCE(pr.headline, '') AS headline`;
 
 export function toSummary(r: Row): ParticipantSummary {
   return {
@@ -33,6 +33,7 @@ export function toSummary(r: Row): ParticipantSummary {
     headline: String(r.headline ?? ""),
     approved_at: (r.approved_at as string | null) ?? null,
     approved_by: (r.approved_by as string | null) ?? null,
+    avatar_url: (r.avatar_url as string | null) ?? null,
   };
 }
 

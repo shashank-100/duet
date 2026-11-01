@@ -72,7 +72,7 @@ export function Profile({ id }: { id: string }) {
 
       <section className="card">
         <div className="row" style={{ alignItems: "flex-start" }}>
-          <Avatar name={p.display_name} size="lg" />
+          <Avatar name={p.display_name} size="lg" src={p.avatar_url} />
           <div style={{ flex: 1, minWidth: 240 }}>
             <div className="row" style={{ gap: 8 }}>
               <KindBadge kind={p.kind} />
@@ -81,12 +81,12 @@ export function Profile({ id }: { id: string }) {
             </div>
             <h1 style={{ margin: "8px 0 4px" }}>{p.display_name}</h1>
             <p className="muted" style={{ margin: 0 }}>{p.headline || (BUSY.includes(p.status) ? "Analysis in progress…" : "")}</p>
-            <div className="row small" style={{ marginTop: 10 }}>
-              <a href={sourceHref(p.linkedin_url)} target={p.kind === "demo" ? undefined : "_blank"} rel="noreferrer">
-                {p.kind === "demo" ? "Fictional LinkedIn" : "LinkedIn"} ↗
+            <div className="row small source-links" style={{ marginTop: 12 }}>
+              <a className="btn secondary small" href={sourceHref(p.linkedin_url)} target={p.kind === "demo" ? undefined : "_blank"} rel="noreferrer">
+                {p.kind === "demo" ? "Fictional LinkedIn" : `LinkedIn · ${p.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\//, "").replace(/\/$/, "")}`} ↗
               </a>
-              <a href={sourceHref(p.instagram_url)} target={p.kind === "demo" ? undefined : "_blank"} rel="noreferrer">
-                {p.kind === "demo" ? "Fictional Instagram" : "Instagram"} ↗
+              <a className="btn secondary small" href={sourceHref(p.instagram_url)} target={p.kind === "demo" ? undefined : "_blank"} rel="noreferrer">
+                {p.kind === "demo" ? "Fictional Instagram" : `Instagram · @${p.instagram_url.replace(/\/$/, "").split("/").pop()}`} ↗
               </a>
             </div>
           </div>

@@ -142,7 +142,9 @@ export async function retrieveLinkedInApify(env: ApifyEnv, url: string): Promise
     return { platform: "linkedin", method: "apify", url, status: "not_found", http_status: status, detail: `The scraper returned no profile for this link${err ? ` (${err})` : ""}. Check the link is your public profile URL.`, items: [] };
   }
   const out = linkedInItems(record, url);
+  const photo = str(record, "photo", "profilePicture", "profilePictureUrl", "pictureUrl", "profilePicHighQuality", "profilePic");
   return {
+    avatar: /^https:\/\//.test(photo) ? photo : undefined,
     platform: "linkedin",
     method: "apify",
     url,
@@ -164,7 +166,9 @@ export async function retrieveInstagramApify(env: ApifyEnv, url: string): Promis
     return { platform: "instagram", method: "apify", url, status: "private", http_status: status, detail: "This Instagram account is private. Duet only reads public accounts — switch it to public or upload your Instagram data export.", items: [] };
   }
   const out = instagramItems(record, url);
+  const pic = str(record, "profilePicUrlHD", "profilePicUrl", "profile_pic_url_hd", "profile_pic_url");
   return {
+    avatar: /^https:\/\//.test(pic) ? pic : undefined,
     platform: "instagram",
     method: "apify",
     url,
