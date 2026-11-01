@@ -7,6 +7,7 @@ import { seedDemo } from "./demo/seed";
 import { DATE_PLAN } from "./harness";
 import { storeResult } from "./retrieval/store";
 import { createLLM } from "./llm";
+import { OPERATOR_SOURCE } from "./ingest";
 import { createPracticeDate, dispatch, roomFor, scheduleDatesFor } from "./matchmaking";
 import { rankingFor } from "./rankings";
 import { exportResult, type UploadedFile } from "./retrieval/exports";
@@ -193,12 +194,8 @@ app.post("/api/participants", async (c) => {
   const prefs = parsePreferences((body.preferences ?? {}) as Record<string, unknown>);
   if (prefs.age === null) return bad(c, "Please enter your age (18+). It is only used for eligibility and is never shown publicly.");
 
+  // Open sign-up: anyone with the link can add profiles; there is no per-network limit.
   const ipHash = await sha256(`${c.req.header("cf-connecting-ip") ?? "local"}|duet`);
-  const recent = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM participants WHERE ip_hash = ?1 AND created_at > ?2")
-    .bind(ipHash, new Date(Date.now() - 86_400_000).toISOString())
-    .first<{ n: number }>();
-  const operator = await adminOk(c.req.header("authorization"), c.env.ADMIN_TOKEN);
-  if (!operator && Number(recent?.n ?? 0) >= 10) return bad(c, "Too many profiles created from this network today. Please try again tomorrow.", 429);
   const dupe = await c.env.DB.prepare("SELECT id FROM participants WHERE kind = 'real' AND (linkedin_url = ?1 OR instagram_url = ?2)").bind(linkedin, instagram).first<{ id: string }>();
   if (dupe) return bad(c, "A profile with one of these links already exists. If it's yours, open it with your manage link, or delete it there first.", 409);
 
@@ -366,6 +363,36 @@ app.post("/api/admin/demo/seed", async (c) => {
   const reset = c.req.query("reset") === "1";
   const limit = c.req.query("limit") ? Number(c.req.query("limit")) : undefined;
   return c.json(await seedDemo(c.env, { reset, limit }));
+});
+
+// Operator-added real people: public links only, labelled on every page, no consent claimed on their behalf.
+app.post("/api/admin/participants", async (c) => {
+  if (!(await adminOk(c.req.header("authorization"), c.env.ADMIN_TOKEN))) return bad(c, "Admin token required.", 403);
+  const body = await c.req.json<Record<string, unknown>>().catch(() => null);
+  const name = str(body?.display_name, 60);
+  if (!body || !name) return bad(c, "display_name is required.");
+  let linkedin: string;
+  let instagram: string;
+  try {
+    linkedin = normalizeLinkedIn(String(body.linkedin_url ?? ""));
+    instagram = normalizeInstagram(String(body.instagram_url ?? ""));
+  } catch (err) {
+    return bad(c, err instanceof LinkError ? err.message : "Invalid link.");
+  }
+  const dupe = await c.env.DB.prepare("SELECT id FROM participants WHERE kind = 'real' AND (linkedin_url = ?1 OR instagram_url = ?2)").bind(linkedin, instagram).first<{ id: string }>();
+  if (dupe) return c.json({ id: dupe.id, existing: true });
+  const prefs = parsePreferences({ open_to: ["woman", "man", "nonbinary"], ...((body.preferences ?? {}) as Record<string, unknown>) });
+  const id = `p_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  await c.env.DB.prepare(
+    `INSERT INTO participants (id, kind, display_name, linkedin_url, instagram_url, status, status_detail, consent_at, consent_version, token_hash, ip_hash)
+     VALUES (?1, 'real', ?2, ?3, ?4, 'submitted', 'Queued for retrieval.', NULL, ?5, NULL, 'operator')`,
+  )
+    .bind(id, name, linkedin, instagram, OPERATOR_SOURCE)
+    .run();
+  await savePreferences(c.env.DB, id, prefs);
+  await logEvent(c.env.DB, id, "added", "ok", `Added by the Duet operator from public links (${linkedin}, ${instagram}). Not self-submitted.`);
+  await c.env.INGEST.create({ id: `ingest-${id}-${Date.now()}`, params: { participantId: id, mode: "full" } });
+  return c.json({ id }, 201);
 });
 
 app.post("/api/admin/dispatch", async (c) => {

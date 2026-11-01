@@ -6,6 +6,10 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { analyzePerson } from "./analysis";
 import { getItems, logEvent, newId, now, setStatus } from "./db";
 import { createLLM } from "./llm";
+
+/** consent_version marker for people the operator added from public links (no self-attested consent). */
+export const OPERATOR_SOURCE = "operator-public";
+export const OPERATOR_LABEL = "Duet operator: added from public LinkedIn + Instagram, not self-submitted";
 import { dispatch, scheduleDatesFor } from "./matchmaking";
 import { retrieveInstagramApify, retrieveLinkedInApify } from "./retrieval/apify";
 import { retrieveInstagramDirect, retrieveLinkedInDirect } from "./retrieval/direct";
@@ -35,7 +39,7 @@ async function retrievePlatform(env: Env, participantId: string, platform: "link
 
 export async function runAnalysis(env: Env, participantId: string): Promise<{ status: string; observations: number }> {
   const db = env.DB;
-  const person = await db.prepare("SELECT display_name, kind FROM participants WHERE id = ?1").bind(participantId).first<{ display_name: string; kind: string }>();
+  const person = await db.prepare("SELECT display_name, kind, consent_version FROM participants WHERE id = ?1").bind(participantId).first<{ display_name: string; kind: string; consent_version: string | null }>();
   if (!person) return { status: "deleted", observations: 0 };
   const items = await getItems(db, participantId);
   const hasLinkedIn = items.some((i) => i.platform === "linkedin" && i.field !== "name");
@@ -84,13 +88,16 @@ export async function runAnalysis(env: Env, participantId: string): Promise<{ st
     "ok",
     `Drafted ${result.observations.length} evidence-backed observations${result.dropped ? ` (${result.dropped} unsupported claims discarded)` : ""}${coverage ? `. ${coverage}.` : "."}`,
   );
-  if (person.kind === "demo") {
-    // Fictional personas cannot review themselves; the demo operator approves, and it is labelled as such.
+  const operatorAdded = person.consent_version === OPERATOR_SOURCE;
+  if (person.kind === "demo" || operatorAdded) {
+    // Fictional personas and operator-added public profiles cannot review themselves; the operator
+    // approves, and every page says so.
+    const by = person.kind === "demo" ? "demo operator (fictional persona)" : OPERATOR_LABEL;
     await db
-      .prepare("UPDATE participants SET status = 'approved', status_detail = NULL, dating_enabled = 1, approved_at = ?2, approved_by = 'demo operator (fictional persona)' WHERE id = ?1")
-      .bind(participantId, now())
+      .prepare("UPDATE participants SET status = 'approved', status_detail = NULL, dating_enabled = 1, approved_at = ?2, approved_by = ?3 WHERE id = ?1")
+      .bind(participantId, now(), by)
       .run();
-    await logEvent(db, participantId, "approve", "ok", "Approved by the demo operator (fictional persona).");
+    await logEvent(db, participantId, "approve", "ok", `Approved by the ${by}.`);
     await scheduleDatesFor(db, participantId, env.MAX_DATES_PER_PERSON);
     await dispatch(env);
   } else {
