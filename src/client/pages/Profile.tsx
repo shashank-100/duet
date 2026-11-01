@@ -197,15 +197,15 @@ export function DateList({ dates, me }: { dates: DateSummary[]; me?: string }) {
             const mineA = d.a.id === me;
             const score = me ? (mineA ? d.score_a : d.score_b) : d.score_a !== null && d.score_b !== null ? Math.round(((d.score_a + d.score_b) / 2) * 10) / 10 : null;
             return (
-              <tr key={d.id}>
+              <tr key={d.id} className="date-row" onClick={(e) => { if (!(e.target as HTMLElement).closest("a")) navigate(`/dates/${d.id}`); }}>
                 <td>
-                  <strong>{d.a.display_name}</strong> & <strong>{d.b.display_name}</strong>
+                  <Link to={`/people/${d.a.id}`}><strong>{d.a.display_name}</strong></Link> &amp; <Link to={`/people/${d.b.id}`}><strong>{d.b.display_name}</strong></Link>
                   {d.pool === "practice" ? <span className="badge warn" style={{ marginLeft: 6 }}>Practice</span> : null}
                 </td>
                 <td><StatusBadge status={d.status} /></td>
                 <td>{d.turn_count}/8</td>
                 <td>{score ?? "—"}</td>
-                <td><Link to={`/dates/${d.id}`}>{d.status === "running" || d.status === "evaluating" ? "Watch live" : "Transcript"}</Link></td>
+                <td><Link className="btn small secondary" to={`/dates/${d.id}`}>{d.status === "running" || d.status === "evaluating" ? "Watch live" : "Read date"}</Link></td>
               </tr>
             );
           })}
