@@ -1,6 +1,6 @@
-import { Avatar, ErrorBox, StatusBadge, useApi } from "../components";
+import { Avatar, useApi } from "../components";
 import { Link } from "../router";
-import type { ParticipantSummary } from "../../shared/types";
+import type { ProfileDetail } from "../../shared/types";
 
 interface DateRow {
   id: string;
@@ -10,90 +10,119 @@ interface DateRow {
   b: { id: string };
 }
 
-const READY = ["approved"];
+type StepState = "todo" | "now" | "done" | "fail";
+type Ev = ProfileDetail["events"][number];
 
-function PersonStatus({ p, tone }: { p: ParticipantSummary | null; tone: "a" | "b" }) {
-  if (!p) return <div className={`card try-person ${tone}`}><span className="spinner" /> Loading…</div>;
-  const busy = !READY.includes(p.status) && !["error", "needs_sources"].includes(p.status);
+const FAIL = ["error", "blocked", "private", "not_found", "empty"];
+
+/** Turns the person's ingest events into four plain-language steps. */
+function personSteps(p: ProfileDetail | null): { label: string; state: StepState; note?: string }[] {
+  const ev: Ev[] = p?.events ?? [];
+  const last = (step: string) => [...ev].reverse().find((e) => e.step === step);
+  const platform = (name: "linkedin" | "instagram", label: string) => {
+    const all = ev.filter((e) => e.step === `retrieve_${name}`);
+    const ok = all.find((e) => e.status === "ok");
+    if (ok) return { label, state: "done" as StepState, note: ok.message };
+    const started = ev.some((e) => e.step === "retrieve");
+    if (all.length && p && !["submitted", "retrieving"].includes(p.status)) return { label, state: "fail" as StepState, note: all[all.length - 1].message };
+    return { label, state: (started ? "now" : "todo") as StepState, note: all.length ? all[all.length - 1].message : started ? "Scraping the public profile…" : undefined };
+  };
+  const analyze = last("analyze");
+  const approved = p?.status === "approved";
+  return [
+    platform("linkedin", "Reading LinkedIn"),
+    platform("instagram", "Reading Instagram"),
+    {
+      label: "Agent analysing the person",
+      state: analyze?.status === "ok" ? "done" : analyze && FAIL.includes(analyze.status) ? "fail" : p?.status === "analyzing" ? "now" : "todo",
+      note: analyze?.message ?? (p?.status === "analyzing" ? "Finding needs, hobbies, interests and qualities — every claim must quote a source…" : undefined),
+    },
+    { label: "Profile ready, agent can date", state: approved ? "done" : p?.status === "error" || p?.status === "needs_sources" ? "fail" : "todo", note: approved ? p?.headline || undefined : p?.status_detail ?? undefined },
+  ];
+}
+
+function Steps({ steps }: { steps: { label: string; state: StepState; note?: string }[] }) {
+  return (
+    <ol className="pipe">
+      {steps.map((s) => (
+        <li key={s.label} className={s.state}>
+          <span className="pipe-dot">{s.state === "done" ? "✓" : s.state === "fail" ? "!" : s.state === "now" ? <span className="spinner" /> : ""}</span>
+          <div>
+            <div className="pipe-label">{s.label}</div>
+            {s.note ? <div className="pipe-note">{s.note}</div> : null}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function PersonCard({ p, tone }: { p: ProfileDetail | null; tone: "a" | "b" }) {
   return (
     <div className={`card try-person ${tone}`}>
-      <div className="row" style={{ alignItems: "flex-start" }}>
-        <Avatar name={p.display_name} src={p.avatar_url} size="lg" />
+      <div className="row" style={{ alignItems: "center", marginBottom: 14 }}>
+        <Avatar name={p?.display_name ?? "?"} src={p?.avatar_url} size="lg" />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <StatusBadge status={p.status} />
-          <h2 style={{ margin: "8px 0 4px" }}>{p.display_name}</h2>
-          <p className="small muted" style={{ margin: 0 }}>{p.headline || p.status_detail}</p>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>{tone === "a" ? "Person A" : "Person B"}</div>
+          <h2 style={{ margin: 0 }}>{p?.display_name ?? "…"}</h2>
         </div>
       </div>
-      <p className="small" style={{ margin: "14px 0 0" }}>
-        {busy ? <span className="spinner" style={{ marginRight: 8, verticalAlign: "middle" }} /> : null}
-        {READY.includes(p.status) ? (
-          <>
-            <Link to={`/people/${p.id}`}>Profile &amp; analysis</Link> · <Link to={`/people/${p.id}/ranking`}>Ranking</Link>
-          </>
-        ) : (
-          <Link to={`/people/${p.id}`}>Watch the agent read this person</Link>
-        )}
-      </p>
+      <Steps steps={personSteps(p)} />
+      {p?.status === "approved" ? (
+        <p className="small" style={{ margin: "12px 0 0" }}>
+          <Link to={`/people/${p.id}`}>Profile &amp; analysis</Link> · <Link to={`/people/${p.id}/ranking`}>Ranking</Link>
+        </p>
+      ) : null}
     </div>
   );
 }
 
 export function TryPage({ a, b }: { a: string; b: string }) {
-  const pa = useApi<ParticipantSummary>(`/api/participants/${a}`, 4000);
-  const pb = useApi<ParticipantSummary>(`/api/participants/${b}`, 4000);
-  const dates = useApi<DateRow[]>(`/api/dates?participant=${a}`, 4000);
+  const pa = useApi<ProfileDetail>(`/api/participants/${a}`, 3000);
+  const pb = useApi<ProfileDetail>(`/api/participants/${b}`, 3000);
+  const dates = useApi<DateRow[]>(`/api/dates?participant=${a}`, 3000);
   const date = dates.data?.find((d) => (d.a.id === a && d.b.id === b) || (d.a.id === b && d.b.id === a));
-  const failed = [pa.data, pb.data].find((p) => p && ["error", "needs_sources"].includes(p.status));
+  const both = pa.data?.status === "approved" && pb.data?.status === "approved";
+  const dateSteps: { label: string; state: StepState; note?: string }[] = [
+    {
+      label: "Agents go on a date",
+      state: date ? (date.status === "complete" || date.status === "evaluating" ? "done" : "now") : both ? "now" : "todo",
+      note: date ? `${date.turn_count}/8 turns — outing → shared interests → going deeper → differences → priorities → reflection → closing` : both ? "Starting the date…" : "Starts as soon as both agents have read their person.",
+    },
+    {
+      label: "Scoring the date & ranking",
+      state: date?.status === "complete" ? "done" : date?.status === "evaluating" ? "now" : "todo",
+      note: date?.status === "complete" ? "A separate evaluator scored the date on six criteria; both rankings are updated." : date?.status === "evaluating" ? "The evaluator is reading the transcript…" : undefined,
+    },
+  ];
 
   return (
-    <div className="narrow" style={{ maxWidth: 980 }}>
-      <p className="eyebrow">Your pair</p>
+    <div className="narrow" style={{ maxWidth: 1040 }}>
+      <p className="eyebrow">Your pair · live</p>
       <h1>
         {pa.data?.display_name ?? "…"} <em>&amp;</em> {pb.data?.display_name ?? "…"}
       </h1>
-      <ol className="try-steps small muted">
-        <li className={pa.data && pb.data ? "done" : ""}>Reading LinkedIn + Instagram</li>
-        <li className={READY.includes(pa.data?.status ?? "") && READY.includes(pb.data?.status ?? "") ? "done" : ""}>Profiles analysed</li>
-        <li className={date ? "done" : ""}>Date started</li>
-        <li className={date?.status === "complete" ? "done" : ""}>Date scored &amp; ranked</li>
-      </ol>
-      <ErrorBox error={pa.error || pb.error} />
-      {failed ? (
-        <div className="banner bad">
-          We couldn't read {failed.display_name}'s profiles: {failed.status_detail} <Link to={`/people/${failed.id}`}>Details</Link>
-        </div>
-      ) : null}
-      <div className="try-grid">
-        <PersonStatus p={pa.data} tone="a" />
-        <div className="try-heart" aria-hidden="true">
+      <div className="try-grid" style={{ alignItems: "stretch" }}>
+        <PersonCard p={pa.data} tone="a" />
+        <div className="try-heart" aria-hidden="true" style={{ alignSelf: "center" }}>
           <span />
           <span />
         </div>
-        <PersonStatus p={pb.data} tone="b" />
+        <PersonCard p={pb.data} tone="b" />
       </div>
-      <div className="card" style={{ marginTop: 18, textAlign: "center" }}>
+      <div className="card" style={{ marginTop: 18 }}>
+        <Steps steps={dateSteps} />
         {date ? (
-          <>
-            <p style={{ margin: "0 0 12px" }}>
-              {date.status === "complete" ? "The date is over and scored." : `Their agents are on a date right now — ${date.turn_count}/8 turns.`}
-            </p>
-            <div className="row" style={{ justifyContent: "center" }}>
-              <Link className="btn" to={`/dates/${date.id}`}>{date.status === "complete" ? "Read the date" : "Watch it live"}</Link>
-              {date.status === "complete" ? (
-                <>
-                  <Link className="btn secondary" to={`/people/${a}/ranking`}>{pa.data?.display_name}'s ranking</Link>
-                  <Link className="btn secondary" to={`/people/${b}/ranking`}>{pb.data?.display_name}'s ranking</Link>
-                </>
-              ) : null}
-            </div>
-          </>
-        ) : (
-          <p className="muted" style={{ margin: 0 }}>
-            <span className="spinner" style={{ marginRight: 8, verticalAlign: "middle" }} />
-            The date starts as soon as both agents have read their person (usually 1–3 minutes). This page updates by itself.
-          </p>
-        )}
+          <div className="row" style={{ marginTop: 14 }}>
+            <Link className="btn" to={`/dates/${date.id}`}>{date.status === "complete" ? "Read the date" : "Watch it live"}</Link>
+            {date.status === "complete" ? (
+              <>
+                <Link className="btn secondary" to={`/people/${a}/ranking`}>{pa.data?.display_name}'s ranking</Link>
+                <Link className="btn secondary" to={`/people/${b}/ranking`}>{pb.data?.display_name}'s ranking</Link>
+              </>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

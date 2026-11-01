@@ -99,7 +99,7 @@ app.get("/api/participants/:id", async (c) => {
   if (!detail) return bad(c, "Profile not found.", 404);
   // Real participants' drafts are private until approved: show only who they are and the progress.
   if (detail.kind === "real" && !isOwner && detail.status !== "approved") {
-    return c.json({ ...detail, headline: "", summary: "", observations: [], items: [], unknowns: [], events: [] });
+    return c.json({ ...detail, headline: "", summary: "", observations: [], items: [], unknowns: [] });
   }
   return c.json(detail);
 });
