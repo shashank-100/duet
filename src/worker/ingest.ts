@@ -14,6 +14,7 @@ export const TRY_LABEL = "Try it: entered as a pair on the home page";
 export const OPERATOR_LABEL = "Duet operator: added from public LinkedIn + Instagram, not self-submitted";
 import { dispatch, scheduleDatesFor } from "./matchmaking";
 import { retrieveInstagramApify, retrieveLinkedInApify } from "./retrieval/apify";
+import { retrieveLinkedInContextDev } from "./retrieval/contextdev";
 import { retrieveInstagramDirect, retrieveLinkedInDirect } from "./retrieval/direct";
 import { storeResult } from "./retrieval/store";
 import type { SourceItem } from "../shared/types";
@@ -27,8 +28,14 @@ export interface IngestParams {
 async function retrievePlatform(env: Env, participantId: string, platform: "linkedin" | "instagram", url: string): Promise<string> {
   const db = env.DB;
   // Replace earlier automatic retrievals; uploaded data exports are kept.
-  await db.prepare("DELETE FROM source_documents WHERE participant_id = ?1 AND platform = ?2 AND method IN ('apify','public_fetch')").bind(participantId, platform).run();
+  await db.prepare("DELETE FROM source_documents WHERE participant_id = ?1 AND platform = ?2 AND method IN ('apify','public_fetch','context_dev')").bind(participantId, platform).run();
   const label = platform === "linkedin" ? "LinkedIn" : "Instagram";
+  if (platform === "linkedin" && env.CONTEXT_DEV_API_KEY) {
+    const ctx = await retrieveLinkedInContextDev(env, url);
+    await storeResult(db, participantId, ctx);
+    await logEvent(db, participantId, "retrieve_linkedin", ctx.status, `LinkedIn via Context.dev: ${ctx.detail}`);
+    if (ctx.status === "ok") return ctx.status;
+  }
   const apify = platform === "linkedin" ? await retrieveLinkedInApify(env, url) : await retrieveInstagramApify(env, url);
   await storeResult(db, participantId, apify);
   if (apify.status !== "not_configured") await logEvent(db, participantId, `retrieve_${platform}`, apify.status, `${label} via Apify: ${apify.detail}`);

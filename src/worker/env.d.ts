@@ -3,6 +3,7 @@ interface Env {
   ADMIN_TOKEN?: string;
   MAX_DATES_PER_PERSON?: string;
   APIFY_TOKEN?: string;
+  CONTEXT_DEV_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
   OPENAI_API_KEY?: string;
 }
