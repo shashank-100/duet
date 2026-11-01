@@ -334,3 +334,6 @@ td .btn.small { white-space: nowrap; }
 .evidence > summary::before { content: "＋ "; color: var(--accent); font-style: normal; }
 .evidence[open] > summary::before { content: "－ "; }
 .evidence > summary .muted { font: 0.9rem var(--sans); font-style: normal; }
+
+.prof-chips { margin-top: 12px; }
+.tag.professional { font-size: 0.82rem; padding: 4px 11px; color: var(--ink-2); background: transparent; border-color: var(--line-2); }

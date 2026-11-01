@@ -75,6 +75,18 @@ export function Profile({ id }: { id: string }) {
         <div style={{ flex: 1, minWidth: 240 }}>
           <h1 style={{ margin: "0 0 6px" }}>{p.display_name}</h1>
           <p className="lead-line">{p.headline || (BUSY.includes(p.status) ? "The agent is reading this person…" : "")}</p>
+          {p.observations.some((o) => o.category === "professional") ? (
+            <div className="chips prof-chips">
+              {p.observations
+                .filter((o) => o.category === "professional")
+                .slice(0, 5)
+                .map((o) => (
+                  <a key={o.id} className="tag professional" href={`#${o.id}`} title={o.quote ? `“${o.quote}”` : o.detail}>
+                    {o.label}
+                  </a>
+                ))}
+            </div>
+          ) : null}
           <div className="row small source-links" style={{ marginTop: 14 }}>
             <a className="btn secondary small" href={sourceHref(p.linkedin_url)} target={p.kind === "demo" ? undefined : "_blank"} rel="noreferrer">
               {p.kind === "demo" ? "Fictional LinkedIn" : `LinkedIn · ${p.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\//, "").replace(/\/$/, "")}`} {li ? "✓" : ""} ↗
