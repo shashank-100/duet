@@ -12,13 +12,14 @@ type Person = { display_name: string; linkedin_url: string; instagram_url: strin
 const empty = (): Person => ({ display_name: "", linkedin_url: "", instagram_url: "" });
 
 function PersonFields({ label, tone, value, onChange }: { label: string; tone: "a" | "b"; value: Person; onChange: (p: Person) => void }) {
+  const example = tone === "a" ? "Marques Brownlee" : "Cleo Abram";
   const set = (k: keyof Person) => (e: { target: { value: string } }) => onChange({ ...value, [k]: e.target.value });
   return (
     <fieldset className={`card try-person ${tone}`}>
       <legend className="eyebrow">{label}</legend>
       <div className="field">
         <label htmlFor={`${tone}-name`}>Name</label>
-        <input id={`${tone}-name`} type="text" required value={value.display_name} onChange={set("display_name")} placeholder="Marques Brownlee" />
+        <input id={`${tone}-name`} type="text" required value={value.display_name} onChange={set("display_name")} placeholder={example} />
       </div>
       <div className="field">
         <label htmlFor={`${tone}-li`}>LinkedIn</label>
