@@ -70,33 +70,26 @@ export function Profile({ id }: { id: string }) {
       ) : null}
       <ErrorBox error={actionError} />
 
-      <section className="card">
-        <div className="row" style={{ alignItems: "flex-start" }}>
-          <Avatar name={p.display_name} size="lg" src={p.avatar_url} />
-          <div style={{ flex: 1, minWidth: 240 }}>
-            <div className="row" style={{ gap: 8 }}>
-              <KindBadge kind={p.kind} />
-              <StatusBadge status={p.status} />
-              {p.approved_by ? <span className="badge">Approved by {p.approved_by}</span> : null}
-            </div>
-            <h1 style={{ margin: "8px 0 4px" }}>{p.display_name}</h1>
-            <p className="muted" style={{ margin: 0 }}>{p.headline || (BUSY.includes(p.status) ? "Analysis in progress…" : "")}</p>
-            <div className="row small source-links" style={{ marginTop: 12 }}>
-              <a className="btn secondary small" href={sourceHref(p.linkedin_url)} target={p.kind === "demo" ? undefined : "_blank"} rel="noreferrer">
-                {p.kind === "demo" ? "Fictional LinkedIn" : `LinkedIn · ${p.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\//, "").replace(/\/$/, "")}`} ↗
-              </a>
-              <a className="btn secondary small" href={sourceHref(p.instagram_url)} target={p.kind === "demo" ? undefined : "_blank"} rel="noreferrer">
-                {p.kind === "demo" ? "Fictional Instagram" : `Instagram · @${p.instagram_url.replace(/\/$/, "").split("/").pop()}`} ↗
-              </a>
-            </div>
-          </div>
-          <div className="row">
-            <Link className="btn" to={`/people/${p.id}/ranking`}>Ranking</Link>
-            <a className="btn secondary" href="#dates">Dates ({dates?.length ?? 0})</a>
+      <section className="card profile-head">
+        <Avatar name={p.display_name} size="lg" src={p.avatar_url} />
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <h1 style={{ margin: "0 0 6px" }}>{p.display_name}</h1>
+          <p className="lead-line">{p.headline || (BUSY.includes(p.status) ? "The agent is reading this person…" : "")}</p>
+          <div className="row small source-links" style={{ marginTop: 14 }}>
+            <a className="btn secondary small" href={sourceHref(p.linkedin_url)} target={p.kind === "demo" ? undefined : "_blank"} rel="noreferrer">
+              {p.kind === "demo" ? "Fictional LinkedIn" : `LinkedIn · ${p.linkedin_url.replace(/^https?:\/\/(www\.)?linkedin\.com\//, "").replace(/\/$/, "")}`} {li ? "✓" : ""} ↗
+            </a>
+            <a className="btn secondary small" href={sourceHref(p.instagram_url)} target={p.kind === "demo" ? undefined : "_blank"} rel="noreferrer">
+              {p.kind === "demo" ? "Fictional Instagram" : `Instagram · @${p.instagram_url.replace(/\/$/, "").split("/").pop()}`} {ig ? "✓" : ""} ↗
+            </a>
           </div>
         </div>
-        {p.status_detail ? (
-          <p className={`banner ${p.status === "needs_sources" || p.status === "error" ? "bad" : p.status === "draft_ready" ? "warn" : ""}`} style={{ marginTop: 16, marginBottom: 0 }}>
+        <div className="row profile-actions">
+          <Link className="btn" to={`/people/${p.id}/ranking`}>See ranking</Link>
+          <a className="btn secondary" href="#dates">Dates · {dates?.length ?? 0}</a>
+        </div>
+        {p.status !== "approved" && p.status_detail ? (
+          <p className={`banner ${p.status === "needs_sources" || p.status === "error" ? "bad" : p.status === "draft_ready" ? "warn" : ""}`} style={{ margin: "6px 0 0", flexBasis: "100%" }}>
             {BUSY.includes(p.status) ? <span className="spinner" aria-hidden="true" style={{ marginRight: 8, verticalAlign: "middle" }} /> : null}
             {p.status_detail}
           </p>
@@ -105,95 +98,74 @@ export function Profile({ id }: { id: string }) {
 
       {owner ? <OwnerPanel p={p} onChange={setData} act={act} reload={reload} /> : null}
 
-      <div className="grid profile-grid">
-        <div className="stack" style={{ minWidth: 0 }}>
-          <section className="card" aria-labelledby="analysis">
-            <div className="eyebrow">What the agent found</div>
-            <h2 id="analysis">Analysis</h2>
-            {p.summary ? <p>{p.summary}</p> : null}
-            <p className="small muted">
-              {sourcedCount} observations, each quoting {p.kind === "demo" ? "a fictional" : "a"} LinkedIn or Instagram source.
-              {p.dropped_claims ? ` ${p.dropped_claims} model claims were discarded because they couldn't be matched to an exact quote.` : ""}
-              {p.analysis_model ? ` Analyzed ${timeAgo(p.analyzed_at)} by ${p.analysis_model}.` : ""}
-            </p>
-            {grouped.map(([cat, list]) => (
-              <div className="obs-group" key={cat}>
-                <h3>
-                  {CATEGORY_LABEL[cat]} <span className="badge">{list.length}</span>
-                </h3>
-                <p className="tiny muted" style={{ marginTop: -4 }}>{CATEGORY_HELP[cat]}</p>
-                {list.length === 0 ? <p className="small muted">Nothing in the sources.</p> : list.map((o) => <ObservationRow key={o.id} o={o} owner={owner} pid={p.id} act={act} kind={p.kind} />)}
-              </div>
-            ))}
-            {owner ? <AddObservation pid={p.id} act={act} /> : null}
-          </section>
-        </div>
-        <aside className="stack" style={{ minWidth: 0 }}>
-          <section className="card">
-            <h3>Unknown — not in the sources</h3>
-            {p.unknowns.length ? (
-              <ul className="small" style={{ paddingLeft: 18, margin: 0 }}>
-                {p.unknowns.map((u) => <li key={u}>{u}</li>)}
-              </ul>
-            ) : (
-              <p className="small muted">None listed yet.</p>
-            )}
-          </section>
-          <section className="card">
-            <h3>In their own words</h3>
-            <p className="tiny muted">Participant statements — typed by {p.kind === "demo" ? "the persona author" : "them"}, never inferred.</p>
-            {[
-              ["Location", p.preferences.location],
-              ["Looking for", p.preferences.looking_for],
-              ["Priorities", p.preferences.priorities],
-              ["Boundaries", p.preferences.boundaries],
-            ].map(([k, v]) => (
-              <div key={k} className="small" style={{ marginBottom: 8 }}>
-                <strong>{k}:</strong> {v || <span className="muted">not stated</span>}
-              </div>
-            ))}
-          </section>
-          <section className="card">
-            <h3>Sources & retrieval</h3>
-            <p className="tiny muted">LinkedIn {li ? "✓" : "✗"} · Instagram {ig ? "✓" : "✗"}</p>
-            <ul className="timeline">
-              {p.sources.map((s) => (
-                <li key={s.id} className={s.status}>
-                  <div className="row" style={{ gap: 6 }}>
-                    <strong>{s.platform === "linkedin" ? "LinkedIn" : "Instagram"}</strong>
-                    <span className="badge">{s.method.replace("_", " ")}</span>
-                    <StatusBadge status={s.status} />
-                    {s.http_status ? <span className="tiny muted">HTTP {s.http_status}</span> : null}
+      {p.summary ? (
+        <section className="card glance">
+          <div className="eyebrow">The agent's read</div>
+          <p className="glance-summary">{p.summary}</p>
+          <div className="glance-grid">
+            {(["need", "hobby", "interest", "quality"] as ObservationCategory[]).map((cat) => {
+              const list = p.observations.filter((o) => o.category === cat);
+              if (!list.length) return null;
+              return (
+                <div key={cat}>
+                  <div className="glance-label">{CATEGORY_LABEL[cat]}</div>
+                  <div className="chips">
+                    {list.map((o) => (
+                      <a key={o.id} className={`tag ${cat}`} href={`#${o.id}`} title={o.quote ? `“${o.quote}”` : o.detail}>
+                        {o.label}
+                      </a>
+                    ))}
                   </div>
-                  <div className="small muted">{s.detail}</div>
-                </li>
-              ))}
-            </ul>
-            <details style={{ marginTop: 10 }}>
-              <summary className="small">What the agent read ({p.items.length} items)</summary>
-              <ul className="small" style={{ paddingLeft: 18 }}>
-                {p.items.map((i) => (
-                  <li key={i.id}>
-                    <span className="badge">{i.platform} · {i.field}</span> {i.text}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          </section>
-          {p.events.length ? (
-            <section className="card">
-              <h3>Activity</h3>
-              <ul className="timeline">
-                {p.events.map((e, i) => (
-                  <li key={i} className={e.status}>
-                    <span className="small">{e.message}</span> <span className="tiny muted">{timeAgo(e.at)}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-        </aside>
-      </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="card" aria-labelledby="analysis">
+        <div className="eyebrow">Evidence</div>
+        <h2 id="analysis">Every finding, with the quote it came from</h2>
+        <p className="small muted" style={{ marginTop: -4 }}>
+          {sourcedCount} findings from {li && ig ? "LinkedIn and Instagram" : li ? "LinkedIn" : ig ? "Instagram" : "the sources"}. Anything the model couldn't back with an exact quote was thrown out.
+        </p>
+        {grouped
+          .filter(([, list]) => list.length)
+          .map(([cat, list]) => (
+            <div className="obs-group" key={cat}>
+              <h3>
+                {CATEGORY_LABEL[cat]} <span className="badge">{list.length}</span>
+              </h3>
+              <div className="obs-grid">
+                {list.map((o) => <ObservationRow key={o.id} o={o} owner={owner} pid={p.id} act={act} kind={p.kind} />)}
+              </div>
+            </div>
+          ))}
+        {owner ? <AddObservation pid={p.id} act={act} /> : null}
+      </section>
+
+      <details className="card how-read">
+        <summary>How the agent read {p.display_name.split(" ")[0]}</summary>
+        <ul className="timeline" style={{ marginTop: 14 }}>
+          {p.sources.map((s) => (
+            <li key={s.id} className={s.status}>
+              <strong>{s.platform === "linkedin" ? "LinkedIn" : "Instagram"}</strong> <span className="tiny muted">via {s.method.replace("_", " ")}</span>
+              <div className="small muted">{s.detail}</div>
+            </li>
+          ))}
+        </ul>
+        <details style={{ marginTop: 12 }}>
+          <summary className="small">Raw text the agent read ({p.items.length} items)</summary>
+          <ul className="small" style={{ paddingLeft: 18 }}>
+            {p.items.map((i) => (
+              <li key={i.id}>
+                <span className="badge">{i.platform} · {i.field}</span> {i.text}
+              </li>
+            ))}
+          </ul>
+        </details>
+        {p.approved_by ? <p className="tiny muted" style={{ margin: "12px 0 0" }}>Approved by {p.approved_by}.</p> : null}
+      </details>
 
       <section className="card" id="dates" aria-labelledby="dates-h">
         <h2 id="dates-h">Dates</h2>
@@ -248,7 +220,7 @@ function ObservationRow({ o, owner, pid, act, kind }: { o: Observation; owner: b
   const [label, setLabel] = useState(o.label);
   const [detail, setDetail] = useState(o.detail);
   return (
-    <div className="obs">
+    <div className="obs" id={o.id}>
       {editing ? (
         <form
           onSubmit={(e) => {
@@ -267,21 +239,15 @@ function ObservationRow({ o, owner, pid, act, kind }: { o: Observation; owner: b
         </form>
       ) : (
         <>
-          <div className="row spread">
-            <span className="label">{o.label}</span>
-            <span className="row" style={{ gap: 6 }}>
-              {o.origin === "participant" ? <span className="badge real">Your statement</span> : <span className="badge">{o.source?.platform === "instagram" ? "Instagram" : "LinkedIn"}</span>}
-              {o.edited ? <span className="badge warn">Edited by participant</span> : null}
-            </span>
-          </div>
-          {o.detail ? <div className="small">{o.detail}</div> : null}
-          {o.quote ? <div className="quote small">“{o.quote}”</div> : null}
+          <span className="label">{o.label}</span>
+          {o.edited ? <span className="badge warn" style={{ marginLeft: 6 }}>Edited</span> : null}
+          {o.quote ? <div className="quote small">{o.quote}</div> : o.detail ? <div className="small muted">{o.detail}</div> : null}
           {o.source ? (
-            <div className="src">
-              Source: <a href={o.source.url} target={kind === "demo" ? undefined : "_blank"} rel="noreferrer">{o.source.platform === "instagram" ? "Instagram" : "LinkedIn"} · {o.source.field}</a>
-            </div>
-          ) : o.origin === "sourced" ? (
-            <div className="src">Source no longer available (re-retrieved).</div>
+            <a className="src" href={o.source.url} target={kind === "demo" ? undefined : "_blank"} rel="noreferrer">
+              {o.source.platform === "instagram" ? "Instagram" : "LinkedIn"} · {o.source.field} ↗
+            </a>
+          ) : o.origin === "participant" ? (
+            <span className="src">Their own words</span>
           ) : null}
           {owner ? (
             <div className="row" style={{ marginTop: 6, gap: 4 }}>

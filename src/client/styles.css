@@ -301,3 +301,25 @@ fieldset.try-person legend { padding: 0 6px; }
 .try-steps li::before { content: ""; position: absolute; left: 0; top: 0.5em; width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--line-2); }
 .try-steps li.done { color: var(--ink); }
 .try-steps li.done::before { background: var(--good); border-color: var(--good); box-shadow: 0 0 8px var(--good); }
+
+/* ---------- profile ---------- */
+.profile-head { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+.profile-head h1 { font-size: clamp(2.4rem, 5vw, 3.6rem); font-style: italic; }
+.profile-actions { align-self: center; }
+.lead-line { font-size: 1.12rem; color: var(--ink-2); margin: 0; max-width: 46em; }
+.glance-summary { font: 1.32rem/1.5 var(--serif); color: var(--ink); max-width: 52em; }
+.glance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px 26px; margin-top: 6px; }
+.glance-label { font: 600 0.7rem var(--mono); text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin-bottom: 8px; }
+.tag { display: inline-block; padding: 6px 12px; border-radius: 999px; font-size: 0.9rem; text-decoration: none; color: var(--ink); border: 1px solid var(--line-2); background: var(--bg-2); transition: border-color 0.15s, transform 0.15s; }
+.tag:hover { color: var(--ink); transform: translateY(-1px); }
+.tag.need { border-color: rgba(255, 107, 139, 0.5); }
+.tag.hobby { border-color: rgba(245, 178, 92, 0.55); }
+.tag.interest { border-color: rgba(195, 168, 255, 0.5); }
+.tag.quality { border-color: rgba(143, 220, 174, 0.5); }
+.obs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.obs-grid .obs + .obs { margin-top: 0; }
+.obs { display: flex; flex-direction: column; gap: 2px; }
+.obs:target { border-color: var(--accent); box-shadow: var(--glow); }
+.obs .src { margin-top: auto; padding-top: 6px; text-decoration: none; }
+.obs a.src:hover { color: var(--accent-ink); }
+.how-read > summary { font-family: var(--serif); font-style: italic; font-size: 1.3rem; font-weight: 400; }
