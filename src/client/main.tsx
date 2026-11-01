@@ -33,7 +33,6 @@ const NAV = [
   ["/people", "People"],
   ["/dates", "Dates"],
   ["/how-it-works", "How it works"],
-  ["/mine", "My profile"],
 ] as const;
 
 function App() {
@@ -61,7 +60,6 @@ function App() {
                 {label}
               </Link>
             ))}
-            <Link to="/join" className="btn small" style={{ color: "#fff" }}>Join</Link>
           </div>
         </nav>
       </header>
