@@ -328,3 +328,9 @@ tr.date-row { cursor: pointer; }
 tr.date-row td a:not(.btn) { color: var(--ink); text-decoration: none; }
 tr.date-row td a:not(.btn):hover { color: var(--accent-ink); text-decoration: underline; }
 td .btn.small { white-space: nowrap; }
+
+.evidence > summary { font: italic 1.5rem var(--serif); cursor: pointer; list-style: none; }
+.evidence > summary::-webkit-details-marker { display: none; }
+.evidence > summary::before { content: "＋ "; color: var(--accent); font-style: normal; }
+.evidence[open] > summary::before { content: "－ "; }
+.evidence > summary .muted { font: 0.9rem var(--sans); font-style: normal; }

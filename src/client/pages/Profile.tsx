@@ -123,26 +123,28 @@ export function Profile({ id }: { id: string }) {
         </section>
       ) : null}
 
-      <section className="card" aria-labelledby="analysis">
-        <div className="eyebrow">Evidence</div>
-        <h2 id="analysis">Every finding, with the quote it came from</h2>
-        <p className="small muted" style={{ marginTop: -4 }}>
-          {sourcedCount} findings from {li && ig ? "LinkedIn and Instagram" : li ? "LinkedIn" : ig ? "Instagram" : "the sources"}. Anything the model couldn't back with an exact quote was thrown out.
-        </p>
+      <details className="card evidence" open={owner || !p.summary} aria-labelledby="analysis">
+        <summary id="analysis">
+          See the evidence <span className="muted">· {sourcedCount} quotes from {li && ig ? "LinkedIn and Instagram" : li ? "LinkedIn" : ig ? "Instagram" : "the sources"}</span>
+        </summary>
+        <p className="small muted" style={{ margin: "10px 0 16px" }}>Every finding above comes from one of these exact quotes. Anything the model couldn't back with a quote was thrown out.</p>
         {grouped
           .filter(([, list]) => list.length)
-          .map(([cat, list]) => (
-            <div className="obs-group" key={cat}>
-              <h3>
-                {CATEGORY_LABEL[cat]} <span className="badge">{list.length}</span>
-              </h3>
-              <div className="obs-grid">
-                {list.map((o) => <ObservationRow key={o.id} o={o} owner={owner} pid={p.id} act={act} kind={p.kind} />)}
+          .map(([cat, all]) => {
+            const list = cat === "professional" ? all.slice(0, 6) : all;
+            return (
+              <div className="obs-group" key={cat}>
+                <h3>
+                  {CATEGORY_LABEL[cat]} <span className="badge">{list.length}</span>
+                </h3>
+                <div className="obs-grid">
+                  {list.map((o) => <ObservationRow key={o.id} o={o} owner={owner} pid={p.id} act={act} kind={p.kind} />)}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         {owner ? <AddObservation pid={p.id} act={act} /> : null}
-      </section>
+      </details>
 
       <details className="card how-read">
         <summary>How the agent read {p.display_name.split(" ")[0]}</summary>
@@ -241,7 +243,11 @@ function ObservationRow({ o, owner, pid, act, kind }: { o: Observation; owner: b
         <>
           <span className="label">{o.label}</span>
           {o.edited ? <span className="badge warn" style={{ marginLeft: 6 }}>Edited</span> : null}
-          {o.quote ? <div className="quote small">{o.quote}</div> : o.detail ? <div className="small muted">{o.detail}</div> : null}
+          {o.quote && !o.label.toLowerCase().includes(o.quote.toLowerCase().trim()) ? (
+            <div className="quote small">{o.quote}</div>
+          ) : o.detail ? (
+            <div className="small muted">{o.detail}</div>
+          ) : null}
           {o.source ? (
             <a className="src" href={o.source.url} target={kind === "demo" ? undefined : "_blank"} rel="noreferrer">
               {o.source.platform === "instagram" ? "Instagram" : "LinkedIn"} · {o.source.field} ↗
