@@ -337,3 +337,5 @@ td .btn.small { white-space: nowrap; }
 
 .prof-chips { margin-top: 12px; }
 .tag.professional { font-size: 0.82rem; padding: 4px 11px; color: var(--ink-2); background: transparent; border-color: var(--line-2); }
+
+.glance-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px 22px; }
