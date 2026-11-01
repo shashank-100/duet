@@ -96,7 +96,11 @@ app.get("/api/participants/:id", async (c) => {
   const isOwner = await requireOwner(c, id);
   const detail = await getProfileDetail(c.env.DB, id, isOwner);
   // Real participants' drafts are private to them until they approve.
-  if (!detail || (detail.kind === "real" && !isOwner && detail.status !== "approved")) return bad(c, "Profile not found.", 404);
+  if (!detail) return bad(c, "Profile not found.", 404);
+  // Real participants' drafts are private until approved: show only who they are and the progress.
+  if (detail.kind === "real" && !isOwner && detail.status !== "approved") {
+    return c.json({ ...detail, headline: "", summary: "", observations: [], items: [], unknowns: [], events: [] });
+  }
   return c.json(detail);
 });
 
