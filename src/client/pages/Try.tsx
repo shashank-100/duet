@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { Avatar, useApi } from "../components";
-import { Link } from "../router";
+import { Link, navigate } from "../router";
 import type { ProfileDetail } from "../../shared/types";
 
 interface DateRow {
@@ -83,6 +84,10 @@ export function TryPage({ a, b }: { a: string; b: string }) {
   const dates = useApi<DateRow[]>(`/api/dates?participant=${a}`, 3000);
   const date = dates.data?.find((d) => (d.a.id === a && d.b.id === b) || (d.a.id === b && d.b.id === a));
   const both = pa.data?.status === "approved" && pb.data?.status === "approved";
+  // As soon as the date starts, take the viewer straight to it, live.
+  useEffect(() => {
+    if (date && date.status !== "complete") navigate(`/dates/${date.id}`);
+  }, [date?.id, date?.status]);
   const dateSteps: { label: string; state: StepState; note?: string }[] = [
     {
       label: "Agents go on a date",

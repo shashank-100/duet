@@ -352,3 +352,18 @@ td .btn.small { white-space: nowrap; }
 .pipe-label { font-weight: 600; }
 .pipe li.now .pipe-label { color: var(--accent-ink); }
 .pipe-note { font-size: 0.84rem; color: var(--muted); margin-top: 2px; }
+
+/* ---------- live pipeline (pair page) ---------- */
+.pipe { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.pipe li { display: flex; gap: 12px; align-items: flex-start; opacity: 0.5; }
+.pipe li.now, .pipe li.done, .pipe li.fail { opacity: 1; }
+.pipe-dot { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 0.78rem; font-weight: 700; border: 1px solid var(--line-2); color: var(--muted); }
+.pipe-dot .spinner { width: 14px; height: 14px; }
+.pipe li.done .pipe-dot { background: var(--good); border-color: var(--good); color: #0f1a14; }
+.pipe li.fail .pipe-dot { background: var(--bad); border-color: var(--bad); color: #2a0e0c; }
+.pipe li.now .pipe-dot { border-color: var(--accent); }
+.pipe-label { font-weight: 600; }
+.pipe li.now .pipe-label { color: var(--accent-ink); }
+.pipe-note { font-size: 0.84rem; color: var(--muted); margin-top: 2px; }
+/* no replaying entrance animations on pages that refresh themselves */
+.try-person, .narrow .card { animation: none; }
