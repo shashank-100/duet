@@ -99,15 +99,19 @@ function workersAI(ai: Ai, model: string): LLM {
     // Capacity (3040) and internal (8005) errors are usually gone within seconds, so retry here
     // before failing the whole workflow step or date turn.
     const delays = [2000, 5000, 12000];
+    const rateDelays = [15000, 30000, 45000, 60000];
     for (let attempt = 0; ; attempt++) {
       try {
         // The AI binding's input type is a union over every model; this call shape is the chat form.
         return await (ai.run as (m: string, i: unknown) => Promise<unknown>)(model, input(req, stream));
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        const transient = /capacity|3040|8005|internal server error|overload|timeout/i.test(message);
-        if (transient && attempt < delays.length) {
-          await new Promise((r) => setTimeout(r, delays[attempt]));
+        // 3021 is the per-minute request limit: wait it out rather than fail the date.
+        const rateLimited = /3021|rate limit/i.test(message);
+        const transient = rateLimited || /capacity|3040|8005|internal server error|overload|timeout/i.test(message);
+        const wait = rateLimited ? rateDelays : delays;
+        if (transient && attempt < wait.length) {
+          await new Promise((r) => setTimeout(r, wait[attempt] + Math.random() * 3000));
           continue;
         }
         const retryable = transient || !/not found|invalid|unauthorized|neurons|quota/i.test(message);

@@ -27,7 +27,7 @@
     "WORKERS_AI_MODEL": "@cf/deepseek-ai/deepseek-v4-pro-0813",
     "ANTHROPIC_MODEL": "claude-sonnet-5-5",
     "OPENAI_MODEL": "gpt-5-mini",
-    "MAX_CONCURRENT_DATES": "12",
+    "MAX_CONCURRENT_DATES": "8",
     "MAX_DATES_PER_PERSON": "8",
     "LINKEDIN_ACTOR": "harvestapi~linkedin-profile-scraper",
     "INSTAGRAM_ACTOR": "apify~instagram-profile-scraper",
